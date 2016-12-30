@@ -1,0 +1,39 @@
+{
+  "name": "syncthrough",
+  "version": "0.0.1",
+  "description": "A Transform stream that is sync, and very fast",
+  "main": "syncthrough.js",
+  "scripts": {
+    "test": "standard | snazzy && tape test.js | tap-spec"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mcollina/syncthrough.git"
+  },
+  "keywords": [
+    "streams",
+    "stream",
+    "transform",
+    "through",
+    "through2"
+  ],
+  "author": "Matteo Collina <hello@matteocollina.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mcollina/syncthrough/issues"
+  },
+  "homepage": "https://github.com/mcollina/syncthrough#readme",
+  "devDependencies": {
+    "inherits": "^2.0.3",
+    "pre-commit": "^1.2.2",
+    "readable-stream": "^2.2.2",
+    "snazzy": "^5.0.0",
+    "standard": "^8.6.0",
+    "tap-spec": "^4.1.1",
+    "tape": "^4.6.3"
+  },
+  "dependencies": {
+    "buffer-shims": "^1.0.0",
+    "inherits": "^2.0.3"
+  }
+}
