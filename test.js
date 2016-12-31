@@ -5,6 +5,7 @@ var through = require('./')
 var Readable = require('readable-stream').Readable
 var Writable = require('readable-stream').Writable
 var Buffer = require('buffer-shims')
+var fs = require('fs')
 
 function stringFrom (chunks) {
   return new Readable({
@@ -268,4 +269,61 @@ test('double end()', function (t) {
     t.equal(err.message, 'write after EOF')
   })
   stream.end('world')
+})
+
+test('uppercase a file with on(\'data\')', function (t) {
+  t.plan(1)
+
+  var str = ''
+  var expected = ''
+
+  var stream = through(function (chunk) {
+    return chunk.toString().toUpperCase()
+  })
+
+  stream.on('data', function (chunk) {
+    str = str + chunk
+  })
+
+  var from = fs.createReadStream(__filename)
+  from.pipe(new Writable({
+    write: function (chunk, enc, cb) {
+      expected += chunk.toString().toUpperCase()
+      cb()
+    }
+  })).on('finish', function () {
+    t.equal(str, expected)
+  })
+  from.pipe(stream)
+})
+
+test('uppercase a file with pipe()', function (t) {
+  t.plan(1)
+
+  var str = ''
+  var expected = ''
+
+  var stream = through(function (chunk) {
+    return chunk.toString().toUpperCase()
+  })
+
+  stream.pipe(new Writable({
+    objecMode: true,
+    write: function (chunk, enc, cb) {
+      str += chunk
+      cb()
+    }
+  }))
+
+  var from = fs.createReadStream(__filename)
+  from.pipe(new Writable({
+    write: function (chunk, enc, cb) {
+      expected += chunk.toString().toUpperCase()
+      cb()
+    }
+  })).on('finish', function () {
+    t.equal(str, expected)
+  })
+
+  from.pipe(stream)
 })
