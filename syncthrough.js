@@ -36,7 +36,7 @@ SyncThrough.prototype.pipe = function (dest) {
     this.end()
   })
 
-  return this
+  return dest
 }
 
 SyncThrough.prototype.write = function (chunk) {
