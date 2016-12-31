@@ -138,10 +138,7 @@ OnData.prototype.write = function (chunk) {
   this.parent.emit('data', chunk)
 }
 
-OnData.prototype.end = function (chunk) {
-  if (chunk) {
-    this.parent.write(chunk)
-  }
+OnData.prototype.end = function () {
 }
 
 module.exports = SyncThrough
