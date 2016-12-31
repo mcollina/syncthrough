@@ -152,13 +152,35 @@ test('pipe event', function (t) {
   var from = stringFrom([Buffer.from('foo'), Buffer.from('bar')])
   var sink = stringSink(t, [Buffer.from('FOO'), Buffer.from('BAR')])
 
-  stream.on('pipe', function () {
-    t.pass('pipe emitted on stream')
+  stream.on('pipe', function (s) {
+    t.equal(s, from, 'pipe emitted on stream')
   })
 
-  sink.on('pipe', function () {
-    t.pass('pipe emitted on sink')
+  sink.on('pipe', function (s) {
+    t.equal(s, stream, 'pipe emitted on sink')
   })
 
   from.pipe(stream).pipe(sink)
+})
+
+test('unpipe event', function (t) {
+  t.plan(2)
+
+  var stream = through(function (chunk, enc) {
+    return Buffer.from(chunk.toString().toUpperCase())
+  })
+  var from = new Readable({ read: function () { } })
+  var sink = stringSink(t, [Buffer.from('FOO')])
+
+  sink.on('unpipe', function (s) {
+    t.equal(s, stream, 'stream is unpiped')
+  })
+
+  from.pipe(stream).pipe(sink)
+  from.push(Buffer.from('foo'))
+  process.nextTick(function () {
+    // writing is deferred, we need to let a write go through
+    stream.unpipe(sink)
+    from.push(Buffer.from('bar'))
+  })
 })

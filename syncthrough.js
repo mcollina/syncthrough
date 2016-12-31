@@ -41,11 +41,23 @@ SyncThrough.prototype.pipe = function (dest) {
   return dest
 }
 
+SyncThrough.prototype.unpipe = function (dest) {
+  if (!this._destination || this._destination !== dest) {
+    return this
+  }
+
+  this._destination = null
+
+  dest.emit('unpipe', this)
+
+  return this
+}
+
 SyncThrough.prototype.write = function (chunk) {
   var res = this._transform(chunk)
 
   if (!this._destination) {
-    if (!this._inFlight) {
+    if (this._inFlight) {
       this.emit('error', new Error('upstream must respect backpressure'))
       return false
     }
