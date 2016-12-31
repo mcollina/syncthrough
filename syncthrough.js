@@ -136,6 +136,7 @@ inherits(OnData, EE)
 
 OnData.prototype.write = function (chunk) {
   this.parent.emit('data', chunk)
+  return true
 }
 
 OnData.prototype.end = function () {
