@@ -12,6 +12,24 @@ function SyncThrough (transform) {
   this._transform = transform || passthrough
   this._destination = null
   this._inFlight = null
+
+  this.on('newListener', onNewListener)
+}
+
+function onNewListener (ev, func) {
+  if (ev === 'data') {
+    if (this._destination && !(this._destination instanceof OnData)) {
+      throw new Error('you can use only pipe() or on(\'data\')')
+    }
+    this.pipe(new OnData(this))
+    this.on('removeListener', onRemoveListener)
+  }
+}
+
+function onRemoveListener (ev, func) {
+  if (ev === 'data' && this.listenerCount() === 0) {
+    this.unpipe(this._destination)
+  }
 }
 
 inherits(SyncThrough, EE)
@@ -80,6 +98,21 @@ SyncThrough.prototype.end = function () {
 
 function passthrough (chunk) {
   return chunk
+}
+
+function OnData (parent) {
+  this.parent = parent
+  EE.call(this)
+}
+
+inherits(OnData, EE)
+
+OnData.prototype.write = function (chunk) {
+  this.parent.emit('data', chunk)
+}
+
+OnData.prototype.end = function () {
+  this.parent.emit('end')
 }
 
 module.exports = SyncThrough

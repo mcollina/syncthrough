@@ -184,3 +184,23 @@ test('unpipe event', function (t) {
     from.push(Buffer.from('bar'))
   })
 })
+
+test('data event', function (t) {
+  t.plan(3)
+
+  var stream = through(function (chunk, enc) {
+    return Buffer.from(chunk.toString().toUpperCase())
+  })
+  var from = stringFrom([Buffer.from('foo'), Buffer.from('bar')])
+  var expected = [Buffer.from('FOO'), Buffer.from('BAR')]
+
+  stream.on('data', function (chunk) {
+    t.equal(chunk.toString(), expected.shift().toString(), 'chunk matches')
+  })
+
+  stream.on('end', function () {
+    t.pass('end emitted')
+  })
+
+  from.pipe(stream)
+})
