@@ -22,11 +22,7 @@ SyncThrough.prototype.pipe = function (dest) {
   }
   this._destination = dest
 
-  if (this._inFlight && this._destination.write(this._inFlight)) {
-    this.emit('drain')
-  }
-
-  this._inFlight = null
+  dest.emit('pipe', this)
 
   this._destination.on('drain', () => {
     this.emit('drain')
@@ -35,6 +31,12 @@ SyncThrough.prototype.pipe = function (dest) {
   this._destination.on('end', () => {
     this.end()
   })
+
+  if (this._inFlight && this._destination.write(this._inFlight)) {
+    this.emit('drain')
+  }
+
+  this._inFlight = null
 
   return dest
 }

@@ -142,3 +142,23 @@ test('objects', function (t) {
 
   from.pipe(stream).pipe(sink)
 })
+
+test('pipe event', function (t) {
+  t.plan(4)
+
+  var stream = through(function (chunk, enc) {
+    return Buffer.from(chunk.toString().toUpperCase())
+  })
+  var from = stringFrom([Buffer.from('foo'), Buffer.from('bar')])
+  var sink = stringSink(t, [Buffer.from('FOO'), Buffer.from('BAR')])
+
+  stream.on('pipe', function () {
+    t.pass('pipe emitted on stream')
+  })
+
+  sink.on('pipe', function () {
+    t.pass('pipe emitted on sink')
+  })
+
+  from.pipe(stream).pipe(sink)
+})
