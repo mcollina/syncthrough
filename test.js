@@ -55,7 +55,7 @@ function objectSink (t, expected) {
 test('pipe', function (t) {
   t.plan(3)
 
-  var stream = through(function (chunk, enc) {
+  var stream = through(function (chunk) {
     return Buffer.from(chunk.toString().toUpperCase())
   })
   var from = stringFrom([Buffer.from('foo'), Buffer.from('bar')])
@@ -71,11 +71,11 @@ test('pipe', function (t) {
 test('multiple pipe', function (t) {
   t.plan(3)
 
-  var stream = through(function (chunk, enc) {
+  var stream = through(function (chunk) {
     return Buffer.from(chunk.toString().toUpperCase())
   })
 
-  var stream2 = through(function (chunk, enc) {
+  var stream2 = through(function (chunk) {
     return Buffer.from(chunk.toString().toLowerCase())
   })
 
@@ -92,7 +92,7 @@ test('multiple pipe', function (t) {
 test('backpressure', function (t) {
   t.plan(3)
 
-  var stream = through(function (chunk, enc) {
+  var stream = through(function (chunk) {
     return Buffer.from(chunk.toString().toUpperCase())
   })
 
@@ -109,11 +109,11 @@ test('backpressure', function (t) {
 test('multiple pipe with backpressure', function (t) {
   t.plan(4)
 
-  var stream = through(function (chunk, enc) {
+  var stream = through(function (chunk) {
     return Buffer.from(chunk.toString().toUpperCase())
   })
 
-  var stream2 = through(function (chunk, enc) {
+  var stream2 = through(function (chunk) {
     return Buffer.from(chunk.toString().toLowerCase())
   })
 
@@ -130,7 +130,7 @@ test('multiple pipe with backpressure', function (t) {
 test('objects', function (t) {
   t.plan(3)
 
-  var stream = through(function (chunk, enc) {
+  var stream = through(function (chunk) {
     return { chunk: chunk }
   })
   var from = objectFrom([{ name: 'matteo' }, { answer: 42 }])
@@ -146,7 +146,7 @@ test('objects', function (t) {
 test('pipe event', function (t) {
   t.plan(4)
 
-  var stream = through(function (chunk, enc) {
+  var stream = through(function (chunk) {
     return Buffer.from(chunk.toString().toUpperCase())
   })
   var from = stringFrom([Buffer.from('foo'), Buffer.from('bar')])
@@ -166,7 +166,7 @@ test('pipe event', function (t) {
 test('unpipe event', function (t) {
   t.plan(2)
 
-  var stream = through(function (chunk, enc) {
+  var stream = through(function (chunk) {
     return Buffer.from(chunk.toString().toUpperCase())
   })
   var from = new Readable({ read: function () { } })
@@ -188,7 +188,7 @@ test('unpipe event', function (t) {
 test('data event', function (t) {
   t.plan(3)
 
-  var stream = through(function (chunk, enc) {
+  var stream = through(function (chunk) {
     return Buffer.from(chunk.toString().toUpperCase())
   })
   var from = stringFrom([Buffer.from('foo'), Buffer.from('bar')])
@@ -203,4 +203,69 @@ test('data event', function (t) {
   })
 
   from.pipe(stream)
+})
+
+test('end event during pipe', function (t) {
+  t.plan(3)
+
+  var stream = through(function (chunk) {
+    return Buffer.from(chunk.toString().toUpperCase())
+  })
+  var from = stringFrom([Buffer.from('foo'), Buffer.from('bar')])
+  var sink = stringSink(t, [Buffer.from('FOO'), Buffer.from('BAR')])
+
+  stream.on('end', function () {
+    t.pass('end emitted')
+  })
+
+  from.pipe(stream).pipe(sink)
+})
+
+test('end()', function (t) {
+  t.plan(2)
+
+  var stream = through(function (chunk) {
+    return Buffer.from(chunk.toString().toUpperCase())
+  })
+  var expected = [Buffer.from('FOO')]
+
+  stream.on('data', function (chunk) {
+    t.equal(chunk.toString(), expected.shift().toString(), 'chunk matches')
+  })
+
+  stream.on('end', function () {
+    t.pass('end emitted')
+  })
+
+  stream.end(Buffer.from('foo'))
+})
+
+test('on(\'data\') after end()', function (t) {
+  t.plan(2)
+
+  var stream = through(function (chunk) {
+    return Buffer.from(chunk.toString().toUpperCase())
+  })
+  var expected = [Buffer.from('FOO')]
+
+  stream.end(Buffer.from('foo'))
+
+  stream.on('data', function (chunk) {
+    t.equal(chunk.toString(), expected.shift().toString(), 'chunk matches')
+  })
+
+  stream.on('end', function () {
+    t.pass('end emitted')
+  })
+})
+
+test('double end()', function (t) {
+  t.plan(1)
+
+  var stream = through()
+  stream.end('hello')
+  stream.on('error', function (err) {
+    t.equal(err.message, 'write after EOF')
+  })
+  stream.end('world')
 })

@@ -12,6 +12,7 @@ function SyncThrough (transform) {
   this._transform = transform || passthrough
   this._destination = null
   this._inFlight = null
+  this._ended = false
 
   this.on('newListener', onNewListener)
 }
@@ -21,8 +22,15 @@ function onNewListener (ev, func) {
     if (this._destination && !(this._destination instanceof OnData)) {
       throw new Error('you can use only pipe() or on(\'data\')')
     }
-    this.pipe(new OnData(this))
-    this.on('removeListener', onRemoveListener)
+    process.nextTick(deferPiping, this)
+  }
+}
+
+function deferPiping (s) {
+  s.pipe(new OnData(s))
+  s.on('removeListener', onRemoveListener)
+  if (s._ended) {
+    s.emit('end')
   }
 }
 
@@ -35,6 +43,8 @@ function onRemoveListener (ev, func) {
 inherits(SyncThrough, EE)
 
 SyncThrough.prototype.pipe = function (dest) {
+  var that = this
+
   if (this._destination) {
     throw new Error('multiple pipe not allowed')
   }
@@ -42,12 +52,12 @@ SyncThrough.prototype.pipe = function (dest) {
 
   dest.emit('pipe', this)
 
-  this._destination.on('drain', () => {
-    this.emit('drain')
+  this._destination.on('drain', function () {
+    that.emit('drain')
   })
 
-  this._destination.on('end', () => {
-    this.end()
+  this._destination.on('end', function () {
+    that.end()
   })
 
   if (this._inFlight && this._destination.write(this._inFlight)) {
@@ -72,6 +82,11 @@ SyncThrough.prototype.unpipe = function (dest) {
 }
 
 SyncThrough.prototype.write = function (chunk) {
+  if (this._ended) {
+    this.emit('error', new Error('write after EOF'))
+    return false
+  }
+
   var res = this._transform(chunk)
 
   if (!this._destination) {
@@ -79,7 +94,7 @@ SyncThrough.prototype.write = function (chunk) {
       this.emit('error', new Error('upstream must respect backpressure'))
       return false
     }
-    this._inFlight = chunk
+    this._inFlight = res
     return false
   }
 
@@ -92,8 +107,20 @@ SyncThrough.prototype.write = function (chunk) {
   return true
 }
 
-SyncThrough.prototype.end = function () {
-  this._destination.end()
+SyncThrough.prototype.end = function (chunk) {
+  if (chunk) {
+    this.write(chunk) // errors if we are after EOF
+  }
+
+  if (!this._ended) {
+    this._ended = true
+    if (this._destination) {
+      this.emit('end')
+      this._destination.end()
+    }
+  }
+
+  return this
 }
 
 function passthrough (chunk) {
@@ -111,8 +138,10 @@ OnData.prototype.write = function (chunk) {
   this.parent.emit('data', chunk)
 }
 
-OnData.prototype.end = function () {
-  this.parent.emit('end')
+OnData.prototype.end = function (chunk) {
+  if (chunk) {
+    this.parent.write(chunk)
+  }
 }
 
 module.exports = SyncThrough
