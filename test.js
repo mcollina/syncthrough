@@ -6,6 +6,8 @@ var Readable = require('readable-stream').Readable
 var Writable = require('readable-stream').Writable
 var Buffer = require('buffer-shims')
 var fs = require('fs')
+var eos = require('end-of-stream')
+var pump = require('pump')
 
 function stringFrom (chunks) {
   return new Readable({
@@ -326,4 +328,85 @@ test('uppercase a file with pipe()', function (t) {
   })
 
   from.pipe(stream)
+})
+
+test('works with end-of-stream', function (t) {
+  t.plan(1)
+  var stream = through()
+  stream.on('data', function () {})
+  stream.end()
+
+  eos(stream, function (err) {
+    t.error(err, 'ends with no error')
+  })
+})
+
+test('destroy()', function (t) {
+  t.plan(1)
+  var stream = through()
+  stream.destroy()
+
+  // this is deferred to the next tick
+  stream.on('close', function () {
+    t.pass('close emitted')
+  })
+})
+
+test('destroy(err)', function (t) {
+  t.plan(1)
+  var stream = through()
+  stream.destroy(new Error('kaboom'))
+  stream.on('error', function (err) {
+    t.ok(err, 'error emitted')
+  })
+})
+
+test('works with pump', function (t) {
+  t.plan(3)
+
+  var stream = through(function (chunk) {
+    return Buffer.from(chunk.toString().toUpperCase())
+  })
+
+  var stream2 = through(function (chunk) {
+    return Buffer.from(chunk.toString().toLowerCase())
+  })
+
+  var from = stringFrom([Buffer.from('foo'), Buffer.from('bar')])
+  var sink = stringSink(t, [Buffer.from('foo'), Buffer.from('bar')])
+
+  pump(from, stream, stream2, sink, function (err) {
+    t.error(err, 'pump finished without error')
+  })
+})
+
+test('works with pump and handles errors', function (t) {
+  t.plan(3)
+
+  var stream = through(function (chunk) {
+    return Buffer.from(chunk.toString().toUpperCase())
+  })
+
+  stream.on('close', function () {
+    t.pass('stream closed prematurely')
+  })
+
+  var stream2 = through(function (chunk) {
+    return Buffer.from(chunk.toString().toLowerCase())
+  })
+
+  stream2.on('close', function () {
+    t.pass('stream2 closed prematurely')
+  })
+
+  var from = stringFrom([Buffer.from('foo'), Buffer.from('bar')])
+  var sink = new Writable({
+    write: function (chunk, enc, cb) {
+      cb(new Error('kaboom'))
+    }
+  })
+
+  pump(from, stream, stream2, sink, function (err) {
+    t.ok(err, 'pump finished with error')
+  })
 })

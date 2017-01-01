@@ -123,6 +123,23 @@ SyncThrough.prototype.end = function (chunk) {
   return this
 }
 
+SyncThrough.prototype.destroy = function (err) {
+  if (!this._destroyed) {
+    this._destroyed = true
+
+    process.nextTick(doDestroy, this, err)
+  }
+
+  return this
+}
+
+function doDestroy (that, err) {
+  if (err) {
+    that.emit('error', err)
+  }
+  that.emit('close')
+}
+
 function passthrough (chunk) {
   return chunk
 }
