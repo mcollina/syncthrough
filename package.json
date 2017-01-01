@@ -36,6 +36,7 @@
   },
   "dependencies": {
     "buffer-shims": "^1.0.0",
-    "inherits": "^2.0.3"
+    "inherits": "^2.0.3",
+    "process-nextick-args": "^1.0.7"
   }
 }

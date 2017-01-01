@@ -2,6 +2,7 @@
 
 var inherits = require('inherits')
 var EE = require('events')
+var nextTick = require('process-nextick-args')
 
 function SyncThrough (transform) {
   if (!(this instanceof SyncThrough)) {
@@ -22,7 +23,7 @@ function onNewListener (ev, func) {
     if (this._destination && !(this._destination instanceof OnData)) {
       throw new Error('you can use only pipe() or on(\'data\')')
     }
-    process.nextTick(deferPiping, this)
+    nextTick(deferPiping, this)
   }
 }
 
@@ -127,7 +128,7 @@ SyncThrough.prototype.destroy = function (err) {
   if (!this._destroyed) {
     this._destroyed = true
 
-    process.nextTick(doDestroy, this, err)
+    nextTick(doDestroy, this, err)
   }
 
   return this
