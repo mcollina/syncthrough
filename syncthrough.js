@@ -1,7 +1,7 @@
 'use strict'
 
 var inherits = require('inherits')
-var EE = require('events')
+var EE = require('events').EventEmitter
 var nextTick = require('process-nextick-args')
 
 function SyncThrough (transform) {
