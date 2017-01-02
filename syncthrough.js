@@ -15,9 +15,11 @@ function SyncThrough (transform) {
   this._destination = null
   this._inFlight = null
   this._ended = false
+  this._endEmitted = false
   this._destinationNeedsEnd = true
 
   this.on('newListener', onNewListener)
+  this.on('end', onEnd)
 }
 
 function onNewListener (ev, func) {
@@ -32,7 +34,7 @@ function onNewListener (ev, func) {
 function deferPiping (s) {
   s.pipe(new OnData(s))
   s.on('removeListener', onRemoveListener)
-  if (s._ended) {
+  if (s._ended & !s._endEmitted) {
     s.emit('end')
   }
 }
@@ -41,6 +43,10 @@ function onRemoveListener (ev, func) {
   if (ev === 'data' && this.listenerCount() === 0) {
     this.unpipe(this._destination)
   }
+}
+
+function onEnd () {
+  this._endEmitted = true
 }
 
 inherits(SyncThrough, EE)
@@ -127,6 +133,7 @@ function doEnd (that) {
   if (!that._ended) {
     that._ended = true
     if (that._destination) {
+      that._endEmitted = true
       that.emit('end')
       if (that._destinationNeedsEnd) {
         that._destination.end()

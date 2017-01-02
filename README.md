@@ -6,6 +6,8 @@ Transform your data as it pass by, synchronously.
 stream][transform] and [through2](https://github.com/rvagg/through2), but with a synchronous processing function.
 **syncthrough** enforces backpressure, but it maintain no internal
 buffering, allowing much greater throughput.
+In fact, it delivers 10x performance over a standard
+[`Transform`][transform].
 
 Because of the [caveats](#caveats), it is best used in combination of
 [`pipe()`][pipe] or [`pump()`][pump].
@@ -33,6 +35,27 @@ fs.createReadStream(__filename)
   }))
   .pipe(process.stdout, { end: false })
 ```
+
+## API
+
+### syncthrough([transform(chunk)])
+
+Returns a new instance of `syncthrough`, where `transform(chunk)` is the
+transformation that will be applied to all incoming chunks.
+
+The default of `func` is:
+
+```js
+function (chunk) {
+  return chunk
+}
+```
+
+If it returns `null`, the stream will be closed. If it returns
+`undefined`, the chunk will be skipped.
+
+There is currently no way to split an incoming chunk into multiple
+chunks.
 
 ## Caveats
 
