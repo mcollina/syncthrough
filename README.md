@@ -27,7 +27,7 @@ var syncthrough = require('syncthrough')
 fs.createReadStream(__filename)
   .pipe(syncthrough(function (chunk) {
     // there is no callback here
-    // you can return undefined to end the stream
+    // you can return null to end the stream
     return chunk.toString().toUpperCase()
   }))
   .pipe(process.stdout, { end: false })
