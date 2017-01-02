@@ -10,10 +10,12 @@ function SyncThrough (transform) {
   }
 
   EE.call(this)
+
   this._transform = transform || passthrough
   this._destination = null
   this._inFlight = null
   this._ended = false
+  this._destinationNeedsEnd = true
 
   this.on('newListener', onNewListener)
 }
@@ -43,7 +45,7 @@ function onRemoveListener (ev, func) {
 
 inherits(SyncThrough, EE)
 
-SyncThrough.prototype.pipe = function (dest) {
+SyncThrough.prototype.pipe = function (dest, opts) {
   var that = this
 
   if (this._destination) {
@@ -60,6 +62,8 @@ SyncThrough.prototype.pipe = function (dest) {
   this._destination.on('end', function () {
     that.end()
   })
+
+  this._destinationNeedsEnd = !opts || opts.end !== false
 
   if (this._inFlight && this._destination.write(this._inFlight)) {
     this.emit('drain')
@@ -102,7 +106,8 @@ SyncThrough.prototype.write = function (chunk) {
   if (res) {
     return this._destination.write(res)
   } else if (res === null) {
-    this._destination.end()
+    doEnd(this)
+    return false
   }
 
   return true
@@ -113,15 +118,21 @@ SyncThrough.prototype.end = function (chunk) {
     this.write(chunk) // errors if we are after EOF
   }
 
-  if (!this._ended) {
-    this._ended = true
-    if (this._destination) {
-      this.emit('end')
-      this._destination.end()
-    }
-  }
+  doEnd(this)
 
   return this
+}
+
+function doEnd (that) {
+  if (!that._ended) {
+    that._ended = true
+    if (that._destination) {
+      that.emit('end')
+      if (that._destinationNeedsEnd) {
+        that._destination.end()
+      }
+    }
+  }
 }
 
 SyncThrough.prototype.destroy = function (err) {

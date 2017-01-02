@@ -410,3 +410,19 @@ test('works with pump and handles errors', function (t) {
     t.ok(err, 'pump finished with error')
   })
 })
+
+test('avoid ending the pipe destination if { end: false }', function (t) {
+  t.plan(2)
+
+  var stream = through(function (chunk) {
+    return Buffer.from(chunk.toString().toUpperCase())
+  })
+  var from = stringFrom([Buffer.from('foo'), Buffer.from('bar')])
+  var sink = stringSink(t, [Buffer.from('FOO'), Buffer.from('BAR')])
+
+  sink.on('finish', function () {
+    t.fail('finish emitted')
+  })
+
+  from.pipe(stream).pipe(sink, { end: false })
+})
