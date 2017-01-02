@@ -28,6 +28,7 @@ fs.createReadStream(__filename)
   .pipe(syncthrough(function (chunk) {
     // there is no callback here
     // you can return null to end the stream
+    // returning undefined will let you skip this chunk
     return chunk.toString().toUpperCase()
   }))
   .pipe(process.stdout, { end: false })
