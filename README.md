@@ -22,7 +22,7 @@ npm i syncthrough --save
 'use strict'
 
 var fs = require('fs')
-var syncthrough = require('.')
+var syncthrough = require('syncthrough')
 
 fs.createReadStream(__filename)
   .pipe(syncthrough(function (chunk) {
