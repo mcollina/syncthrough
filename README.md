@@ -71,6 +71,11 @@ The API is the same of a streams 3 [`Transform`][transform], with some major dif
 4. it only works with streams 2 and streams 3 implementations, not with
    streams 1 (through, split, etc).
 
+<a name="acknowledgements"></a>
+## Acknowledgements
+
+This project was kindly sponsored by [nearForm](http://nearform.com).
+
 ## License
 
 MIT
