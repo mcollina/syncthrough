@@ -65,6 +65,9 @@ transformation that will be applied to all incoming objects.
 Syncthrough is compatible with Streams in [Object Mode](https://nodejs.org/api/stream.html#stream_object_mode),
 the API is exactly the same, simply expect objects instead of buffer chunks.
 
+### instance.push(chunk)
+
+Push a chunk to the destination.
 
 ## Caveats
 

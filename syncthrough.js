@@ -17,6 +17,7 @@ function SyncThrough (transform) {
   this._ended = false
   this._endEmitted = false
   this._destinationNeedsEnd = true
+  this._lastPush = true
 
   this.on('newListener', onNewListener)
   this.on('end', onEnd)
@@ -110,13 +111,19 @@ SyncThrough.prototype.write = function (chunk) {
   }
 
   if (res) {
-    return this._destination.write(res)
+    this._lastPush = this._destination.write(res)
   } else if (res === null) {
     doEnd(this)
     return false
   }
 
-  return true
+  return this._lastPush
+}
+
+SyncThrough.prototype.push = function (chunk) {
+  // ignoring the return value
+  this._lastPush = this._destination.write(chunk)
+  return this
 }
 
 SyncThrough.prototype.end = function (chunk) {

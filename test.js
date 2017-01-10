@@ -426,3 +426,44 @@ test('avoid ending the pipe destination if { end: false }', function (t) {
 
   from.pipe(stream).pipe(sink, { end: false })
 })
+
+test('this.push', function (t) {
+  t.plan(5)
+
+  var stream = through(function (chunk) {
+    this.push(Buffer.from(chunk.toString().toUpperCase()))
+    this.push(Buffer.from(chunk.toString()))
+  })
+  var from = stringFrom([Buffer.from('foo'), Buffer.from('bar')])
+  var sink = stringSink(t, [Buffer.from('FOO'), Buffer.from('foo'), Buffer.from('BAR'), Buffer.from('bar')])
+
+  sink.on('finish', function () {
+    t.pass('finish emitted')
+  })
+
+  from.pipe(stream).pipe(sink)
+})
+
+test('backpressure', function (t) {
+  t.plan(7)
+  var wait = false
+
+  var stream = through(function (chunk) {
+    t.notOk(wait, 'we should not be waiting')
+    wait = true
+    this.push(Buffer.from(chunk.toString().toUpperCase()))
+    this.push(Buffer.from(chunk.toString()))
+    setImmediate(function () {
+      wait = false
+    })
+  })
+
+  var from = stringFrom([Buffer.from('foo'), Buffer.from('bar')])
+  var sink = delayedStringSink(t, [Buffer.from('FOO'), Buffer.from('foo'), Buffer.from('BAR'), Buffer.from('bar')])
+
+  sink.on('finish', function () {
+    t.pass('finish emitted')
+  })
+
+  from.pipe(stream).pipe(sink)
+})
