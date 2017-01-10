@@ -467,3 +467,57 @@ test('backpressure', function (t) {
 
   from.pipe(stream).pipe(sink)
 })
+
+test('returning null ends the stream', function (t) {
+  t.plan(1)
+
+  var stream = through(function (chunk) {
+    return null
+  })
+
+  stream.on('data', function () {
+    t.fail('data should not be emitted')
+  })
+
+  stream.on('end', function () {
+    t.pass('end emitted')
+  })
+
+  stream.write(Buffer.from('foo'))
+})
+
+test('returning null ends the stream deferred', function (t) {
+  t.plan(1)
+
+  var stream = through(function (chunk) {
+    return null
+  })
+
+  stream.on('data', function () {
+    t.fail('data should not be emitted')
+  })
+
+  stream.on('end', function () {
+    t.pass('end emitted')
+  })
+
+  setImmediate(function () {
+    stream.write(Buffer.from('foo'))
+  })
+})
+
+test('returning null ends the stream when piped', function (t) {
+  t.plan(1)
+
+  var stream = through(function (chunk) {
+    return null
+  })
+  var from = stringFrom([Buffer.from('foo'), Buffer.from('bar')])
+  var sink = stringSink(t, [])
+
+  sink.on('finish', function () {
+    t.pass('finish emitted')
+  })
+
+  from.pipe(stream).pipe(sink)
+})

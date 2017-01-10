@@ -25,6 +25,7 @@
   },
   "homepage": "https://github.com/mcollina/syncthrough#readme",
   "devDependencies": {
+    "buffer-shims": "^1.0.0",
     "codecov": "^1.0.1",
     "end-of-stream": "^1.1.0",
     "fastbench": "^1.0.1",

@@ -13,7 +13,7 @@ function SyncThrough (transform) {
 
   this._transform = transform || passthrough
   this._destination = null
-  this._inFlight = null
+  this._inFlight = undefined
   this._ended = false
   this._endEmitted = false
   this._destinationNeedsEnd = true
@@ -74,9 +74,12 @@ SyncThrough.prototype.pipe = function (dest, opts) {
 
   if (this._inFlight && this._destination.write(this._inFlight)) {
     this.emit('drain')
+  } else if (this._inFlight === null) {
+    doEnd(this)
+    this._destination.end()
   }
 
-  this._inFlight = null
+  this._inFlight = undefined
 
   return dest
 }
