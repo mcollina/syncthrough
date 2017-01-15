@@ -41,6 +41,7 @@
   },
   "dependencies": {
     "inherits": "^2.0.3",
+    "listenercount": "^1.0.1",
     "process-nextick-args": "^1.0.7"
   }
 }

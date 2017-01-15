@@ -3,6 +3,7 @@
 var inherits = require('inherits')
 var EE = require('events').EventEmitter
 var nextTick = require('process-nextick-args')
+var listenercount = require('listenercount')
 
 function SyncThrough (transform, flush) {
   if (!(this instanceof SyncThrough)) {
@@ -47,7 +48,7 @@ function deferPiping (that) {
 }
 
 function onRemoveListener (ev, func) {
-  if (ev === 'data' && this.listenerCount(ev) === 0) {
+  if (ev === 'data' && ((ev.listenerCount && ev.listenerCount(this, ev)) || listenercount(this, ev) === 0)) {
     this.unpipe(this._destination)
   }
 }
