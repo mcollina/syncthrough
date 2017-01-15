@@ -539,3 +539,108 @@ test('support flush', function (t) {
 
   from.pipe(stream).pipe(sink)
 })
+
+test('adding on(\'data\') after pipe throws', function (t) {
+  t.plan(1)
+
+  var stream = through(function (chunk) {
+    return Buffer.from(chunk.toString().toUpperCase())
+  })
+
+  var sink = new Writable()
+
+  stream.pipe(sink)
+
+  t.throws(function () {
+    stream.on('data', function () {})
+  })
+})
+
+test('multiple data event', function (t) {
+  t.plan(4)
+
+  var stream = through(function (chunk) {
+    return Buffer.from(chunk.toString().toUpperCase())
+  })
+  var from = stringFrom([Buffer.from('foo'), Buffer.from('bar')])
+  var expected1 = [Buffer.from('FOO'), Buffer.from('BAR')]
+  var expected2 = [Buffer.from('FOO'), Buffer.from('BAR')]
+
+  stream.on('data', function (chunk) {
+    t.equal(chunk.toString(), expected1.shift().toString(), 'chunk from 1 matches')
+  })
+
+  stream.on('data', function (chunk) {
+    t.equal(chunk.toString(), expected2.shift().toString(), 'chunk from 2 matches')
+  })
+
+  from.pipe(stream)
+})
+
+test('piping twice errors', function (t) {
+  t.plan(1)
+
+  var stream = through()
+  stream.pipe(new Writable())
+
+  t.throws(function () {
+    stream.pipe(new Writable())
+  })
+})
+
+test('removing on(\'data\') handlers', function (t) {
+  t.plan(2)
+
+  var stream = through(function (chunk) {
+    return Buffer.from(chunk.toString().toUpperCase())
+  })
+  var expected = [Buffer.from('FOO'), Buffer.from('BAR')]
+
+  stream.on('data', first)
+  stream.on('data', second)
+
+  stream.removeListener('data', second)
+
+  stream.write('foo')
+
+  stream.once('drain', function () {
+    stream.removeListener('data', first)
+    stream.on('data', first)
+    stream.write('bar')
+  })
+
+  function first (chunk) {
+    t.equal(chunk.toString(), expected.shift().toString(), 'chunk matches')
+  }
+
+  function second () {
+    t.fail('should never be called')
+  }
+})
+
+test('double unpipe does nothing', function (t) {
+  var stream = through()
+  var dest = new Writable()
+
+  stream.pipe(dest)
+  stream.unpipe(dest)
+  stream.unpipe(dest)
+
+  stream.write('hello')
+
+  t.end()
+})
+
+test('must respect backpressure', function (t) {
+  t.plan(3)
+
+  var stream = through()
+
+  t.notOk(stream.write('hello'))
+
+  stream.once('error', function () {
+    t.pass('stream errors')
+  })
+
+  t.notOk(stream.write('world'))
+})

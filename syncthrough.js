@@ -21,6 +21,7 @@ function SyncThrough (transform, flush) {
   this._lastPush = true
 
   this.on('newListener', onNewListener)
+  this.on('removeListener', onRemoveListener)
   this.on('end', onEnd)
 }
 
@@ -33,16 +34,20 @@ function onNewListener (ev, func) {
   }
 }
 
-function deferPiping (s) {
-  s.pipe(new OnData(s))
-  s.on('removeListener', onRemoveListener)
-  if (s._ended & !s._endEmitted) {
-    s.emit('end')
+function deferPiping (that) {
+  if (that._destination && that._destination instanceof OnData) {
+    // nothing to do, piping was deferred twice for on('data')
+    return
+  }
+
+  that.pipe(new OnData(that))
+  if (that._ended & !that._endEmitted) {
+    that.emit('end')
   }
 }
 
 function onRemoveListener (ev, func) {
-  if (ev === 'data' && this.listenerCount() === 0) {
+  if (ev === 'data' && this.listenerCount(ev) === 0) {
     this.unpipe(this._destination)
   }
 }
@@ -55,6 +60,7 @@ inherits(SyncThrough, EE)
 
 SyncThrough.prototype.pipe = function (dest, opts) {
   var that = this
+  var inFlight = this._inFlight
 
   if (this._destination) {
     throw new Error('multiple pipe not allowed')
@@ -73,13 +79,12 @@ SyncThrough.prototype.pipe = function (dest, opts) {
 
   this._destinationNeedsEnd = !opts || opts.end !== false
 
-  if (this._inFlight && this._destination.write(this._inFlight)) {
+  if (inFlight && this._destination.write(inFlight)) {
+    this._inFlight = undefined
     this.emit('drain')
-  } else if (this._inFlight === null) {
+  } else if (inFlight === null) {
     doEnd(this)
   }
-
-  this._inFlight = undefined
 
   return dest
 }
