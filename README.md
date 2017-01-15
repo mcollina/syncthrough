@@ -38,7 +38,7 @@ fs.createReadStream(__filename)
 
 ## API
 
-### syncthrough([transform(chunk)])
+### syncthrough([transform(chunk)], [flush()])
 
 Returns a new instance of `syncthrough`, where `transform(chunk)` is the
 transformation that will be applied to all incoming chunks.
@@ -57,7 +57,10 @@ If it returns `null`, the stream will be closed. If it returns
 There is currently no way to split an incoming chunk into multiple
 chunks.
 
-### syncthrough([transform(object)])
+The `flush()` function will be called before the transform sends `end()`
+on the destination.
+
+### syncthrough([transform(object)], [flush()])
 
 Returns a new instance of `syncthrough`, where `transform(object)` is the
 transformation that will be applied to all incoming objects.

@@ -521,3 +521,21 @@ test('returning null ends the stream when piped', function (t) {
 
   from.pipe(stream).pipe(sink)
 })
+
+test('support flush', function (t) {
+  t.plan(4)
+
+  var stream = through(function (chunk) {
+    return Buffer.from(chunk.toString().toUpperCase())
+  }, function () {
+    return Buffer.from('done!')
+  })
+  var from = stringFrom([Buffer.from('foo'), Buffer.from('bar')])
+  var sink = stringSink(t, [Buffer.from('FOO'), Buffer.from('BAR'), Buffer.from('done!')])
+
+  sink.on('finish', function () {
+    t.pass('finish emitted')
+  })
+
+  from.pipe(stream).pipe(sink)
+})

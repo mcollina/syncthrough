@@ -4,14 +4,15 @@ var inherits = require('inherits')
 var EE = require('events').EventEmitter
 var nextTick = require('process-nextick-args')
 
-function SyncThrough (transform) {
+function SyncThrough (transform, flush) {
   if (!(this instanceof SyncThrough)) {
-    return new SyncThrough(transform)
+    return new SyncThrough(transform, flush)
   }
 
   EE.call(this)
 
   this._transform = transform || passthrough
+  this._flush = flush || passthrough
   this._destination = null
   this._inFlight = undefined
   this._ended = false
@@ -76,7 +77,6 @@ SyncThrough.prototype.pipe = function (dest, opts) {
     this.emit('drain')
   } else if (this._inFlight === null) {
     doEnd(this)
-    this._destination.end()
   }
 
   this._inFlight = undefined
@@ -146,7 +146,7 @@ function doEnd (that) {
       that._endEmitted = true
       that.emit('end')
       if (that._destinationNeedsEnd) {
-        that._destination.end()
+        that._destination.end(that._flush())
       }
     }
   }
