@@ -3,6 +3,7 @@
 var bench = require('fastbench')
 var syncthrough = require('../')
 var through2 = require('through2')
+var through = require('through')
 var data = Buffer.from('hello')
 
 function write (i, s) {
@@ -28,6 +29,21 @@ function benchThrough2 (done) {
   write(0, stream)
 }
 
+var lastDone = null
+function benchThrough (done) {
+  var stream = through()
+  lastDone = done
+  stream.on('data', noop)
+  stream.on('end', next)
+
+  write(0, stream)
+}
+
+function next () {
+  // needed to avoid a max stack call exception
+  process.nextTick(lastDone)
+}
+
 function benchSyncThrough (done) {
   var stream = syncthrough()
 
@@ -41,6 +57,7 @@ function noop () {}
 
 var run = bench([
   benchThrough2,
+  benchThrough,
   benchSyncThrough
 ], 10000)
 
