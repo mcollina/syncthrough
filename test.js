@@ -1,13 +1,14 @@
 'use strict'
 
 var test = require('tape')
-var through = require('./')
+var syncthrough = require('./')
 var Readable = require('readable-stream').Readable
 var Writable = require('readable-stream').Writable
 var Buffer = require('buffer-shims')
 var fs = require('fs')
 var eos = require('end-of-stream')
 var pump = require('pump')
+var through = require('through')
 
 function stringFrom (chunks) {
   return new Readable({
@@ -58,7 +59,7 @@ function objectSink (t, expected) {
 test('pipe', function (t) {
   t.plan(3)
 
-  var stream = through(function (chunk) {
+  var stream = syncthrough(function (chunk) {
     return Buffer.from(chunk.toString().toUpperCase())
   })
   var from = stringFrom([Buffer.from('foo'), Buffer.from('bar')])
@@ -74,11 +75,11 @@ test('pipe', function (t) {
 test('multiple pipe', function (t) {
   t.plan(3)
 
-  var stream = through(function (chunk) {
+  var stream = syncthrough(function (chunk) {
     return Buffer.from(chunk.toString().toUpperCase())
   })
 
-  var stream2 = through(function (chunk) {
+  var stream2 = syncthrough(function (chunk) {
     return Buffer.from(chunk.toString().toLowerCase())
   })
 
@@ -95,7 +96,7 @@ test('multiple pipe', function (t) {
 test('backpressure', function (t) {
   t.plan(3)
 
-  var stream = through(function (chunk) {
+  var stream = syncthrough(function (chunk) {
     return Buffer.from(chunk.toString().toUpperCase())
   })
 
@@ -112,11 +113,11 @@ test('backpressure', function (t) {
 test('multiple pipe with backpressure', function (t) {
   t.plan(4)
 
-  var stream = through(function (chunk) {
+  var stream = syncthrough(function (chunk) {
     return Buffer.from(chunk.toString().toUpperCase())
   })
 
-  var stream2 = through(function (chunk) {
+  var stream2 = syncthrough(function (chunk) {
     return Buffer.from(chunk.toString().toLowerCase())
   })
 
@@ -133,7 +134,7 @@ test('multiple pipe with backpressure', function (t) {
 test('objects', function (t) {
   t.plan(3)
 
-  var stream = through(function (chunk) {
+  var stream = syncthrough(function (chunk) {
     return { chunk: chunk }
   })
   var from = objectFrom([{ name: 'matteo' }, { answer: 42 }])
@@ -149,7 +150,7 @@ test('objects', function (t) {
 test('pipe event', function (t) {
   t.plan(4)
 
-  var stream = through(function (chunk) {
+  var stream = syncthrough(function (chunk) {
     return Buffer.from(chunk.toString().toUpperCase())
   })
   var from = stringFrom([Buffer.from('foo'), Buffer.from('bar')])
@@ -169,7 +170,7 @@ test('pipe event', function (t) {
 test('unpipe event', function (t) {
   t.plan(2)
 
-  var stream = through(function (chunk) {
+  var stream = syncthrough(function (chunk) {
     return Buffer.from(chunk.toString().toUpperCase())
   })
   var from = new Readable({ read: function () { } })
@@ -182,7 +183,7 @@ test('unpipe event', function (t) {
   from.pipe(stream).pipe(sink)
   from.push(Buffer.from('foo'))
   process.nextTick(function () {
-    // writing is deferred, we need to let a write go through
+    // writing is deferred, we need to let a write go syncthrough
     stream.unpipe(sink)
     from.push(Buffer.from('bar'))
   })
@@ -191,7 +192,7 @@ test('unpipe event', function (t) {
 test('data event', function (t) {
   t.plan(3)
 
-  var stream = through(function (chunk) {
+  var stream = syncthrough(function (chunk) {
     return Buffer.from(chunk.toString().toUpperCase())
   })
   var from = stringFrom([Buffer.from('foo'), Buffer.from('bar')])
@@ -211,7 +212,7 @@ test('data event', function (t) {
 test('end event during pipe', function (t) {
   t.plan(3)
 
-  var stream = through(function (chunk) {
+  var stream = syncthrough(function (chunk) {
     return Buffer.from(chunk.toString().toUpperCase())
   })
   var from = stringFrom([Buffer.from('foo'), Buffer.from('bar')])
@@ -227,7 +228,7 @@ test('end event during pipe', function (t) {
 test('end()', function (t) {
   t.plan(2)
 
-  var stream = through(function (chunk) {
+  var stream = syncthrough(function (chunk) {
     return Buffer.from(chunk.toString().toUpperCase())
   })
   var expected = [Buffer.from('FOO')]
@@ -246,7 +247,7 @@ test('end()', function (t) {
 test('on(\'data\') after end()', function (t) {
   t.plan(2)
 
-  var stream = through(function (chunk) {
+  var stream = syncthrough(function (chunk) {
     return Buffer.from(chunk.toString().toUpperCase())
   })
   var expected = [Buffer.from('FOO')]
@@ -265,7 +266,7 @@ test('on(\'data\') after end()', function (t) {
 test('double end()', function (t) {
   t.plan(1)
 
-  var stream = through()
+  var stream = syncthrough()
   stream.end('hello')
   stream.on('error', function (err) {
     t.equal(err.message, 'write after EOF')
@@ -279,7 +280,7 @@ test('uppercase a file with on(\'data\')', function (t) {
   var str = ''
   var expected = ''
 
-  var stream = through(function (chunk) {
+  var stream = syncthrough(function (chunk) {
     return chunk.toString().toUpperCase()
   })
 
@@ -305,7 +306,7 @@ test('uppercase a file with pipe()', function (t) {
   var str = ''
   var expected = ''
 
-  var stream = through(function (chunk) {
+  var stream = syncthrough(function (chunk) {
     return chunk.toString().toUpperCase()
   })
 
@@ -332,7 +333,7 @@ test('uppercase a file with pipe()', function (t) {
 
 test('works with end-of-stream', function (t) {
   t.plan(1)
-  var stream = through()
+  var stream = syncthrough()
   stream.on('data', function () {})
   stream.end()
 
@@ -343,7 +344,7 @@ test('works with end-of-stream', function (t) {
 
 test('destroy()', function (t) {
   t.plan(1)
-  var stream = through()
+  var stream = syncthrough()
   stream.destroy()
 
   // this is deferred to the next tick
@@ -354,7 +355,7 @@ test('destroy()', function (t) {
 
 test('destroy(err)', function (t) {
   t.plan(1)
-  var stream = through()
+  var stream = syncthrough()
   stream.destroy(new Error('kaboom'))
   stream.on('error', function (err) {
     t.ok(err, 'error emitted')
@@ -364,11 +365,11 @@ test('destroy(err)', function (t) {
 test('works with pump', function (t) {
   t.plan(3)
 
-  var stream = through(function (chunk) {
+  var stream = syncthrough(function (chunk) {
     return Buffer.from(chunk.toString().toUpperCase())
   })
 
-  var stream2 = through(function (chunk) {
+  var stream2 = syncthrough(function (chunk) {
     return Buffer.from(chunk.toString().toLowerCase())
   })
 
@@ -383,7 +384,7 @@ test('works with pump', function (t) {
 test('works with pump and handles errors', function (t) {
   t.plan(3)
 
-  var stream = through(function (chunk) {
+  var stream = syncthrough(function (chunk) {
     return Buffer.from(chunk.toString().toUpperCase())
   })
 
@@ -391,7 +392,7 @@ test('works with pump and handles errors', function (t) {
     t.pass('stream closed prematurely')
   })
 
-  var stream2 = through(function (chunk) {
+  var stream2 = syncthrough(function (chunk) {
     return Buffer.from(chunk.toString().toLowerCase())
   })
 
@@ -414,7 +415,7 @@ test('works with pump and handles errors', function (t) {
 test('avoid ending the pipe destination if { end: false }', function (t) {
   t.plan(2)
 
-  var stream = through(function (chunk) {
+  var stream = syncthrough(function (chunk) {
     return Buffer.from(chunk.toString().toUpperCase())
   })
   var from = stringFrom([Buffer.from('foo'), Buffer.from('bar')])
@@ -430,7 +431,7 @@ test('avoid ending the pipe destination if { end: false }', function (t) {
 test('this.push', function (t) {
   t.plan(5)
 
-  var stream = through(function (chunk) {
+  var stream = syncthrough(function (chunk) {
     this.push(Buffer.from(chunk.toString().toUpperCase()))
     this.push(Buffer.from(chunk.toString()))
   })
@@ -448,7 +449,7 @@ test('backpressure', function (t) {
   t.plan(7)
   var wait = false
 
-  var stream = through(function (chunk) {
+  var stream = syncthrough(function (chunk) {
     t.notOk(wait, 'we should not be waiting')
     wait = true
     this.push(Buffer.from(chunk.toString().toUpperCase()))
@@ -471,7 +472,7 @@ test('backpressure', function (t) {
 test('returning null ends the stream', function (t) {
   t.plan(1)
 
-  var stream = through(function (chunk) {
+  var stream = syncthrough(function (chunk) {
     return null
   })
 
@@ -489,7 +490,7 @@ test('returning null ends the stream', function (t) {
 test('returning null ends the stream deferred', function (t) {
   t.plan(1)
 
-  var stream = through(function (chunk) {
+  var stream = syncthrough(function (chunk) {
     return null
   })
 
@@ -509,7 +510,7 @@ test('returning null ends the stream deferred', function (t) {
 test('returning null ends the stream when piped', function (t) {
   t.plan(1)
 
-  var stream = through(function (chunk) {
+  var stream = syncthrough(function (chunk) {
     return null
   })
   var from = stringFrom([Buffer.from('foo'), Buffer.from('bar')])
@@ -525,7 +526,7 @@ test('returning null ends the stream when piped', function (t) {
 test('support flush', function (t) {
   t.plan(4)
 
-  var stream = through(function (chunk) {
+  var stream = syncthrough(function (chunk) {
     return Buffer.from(chunk.toString().toUpperCase())
   }, function () {
     return Buffer.from('done!')
@@ -543,7 +544,7 @@ test('support flush', function (t) {
 test('adding on(\'data\') after pipe throws', function (t) {
   t.plan(1)
 
-  var stream = through(function (chunk) {
+  var stream = syncthrough(function (chunk) {
     return Buffer.from(chunk.toString().toUpperCase())
   })
 
@@ -559,7 +560,7 @@ test('adding on(\'data\') after pipe throws', function (t) {
 test('multiple data event', function (t) {
   t.plan(4)
 
-  var stream = through(function (chunk) {
+  var stream = syncthrough(function (chunk) {
     return Buffer.from(chunk.toString().toUpperCase())
   })
   var from = stringFrom([Buffer.from('foo'), Buffer.from('bar')])
@@ -580,7 +581,7 @@ test('multiple data event', function (t) {
 test('piping twice errors', function (t) {
   t.plan(1)
 
-  var stream = through()
+  var stream = syncthrough()
   stream.pipe(new Writable())
 
   t.throws(function () {
@@ -591,7 +592,7 @@ test('piping twice errors', function (t) {
 test('removing on(\'data\') handlers', function (t) {
   t.plan(2)
 
-  var stream = through(function (chunk) {
+  var stream = syncthrough(function (chunk) {
     return Buffer.from(chunk.toString().toUpperCase())
   })
   var expected = [Buffer.from('FOO'), Buffer.from('BAR')]
@@ -619,7 +620,7 @@ test('removing on(\'data\') handlers', function (t) {
 })
 
 test('double unpipe does nothing', function (t) {
-  var stream = through()
+  var stream = syncthrough()
   var dest = new Writable()
 
   stream.pipe(dest)
@@ -634,7 +635,7 @@ test('double unpipe does nothing', function (t) {
 test('must respect backpressure', function (t) {
   t.plan(3)
 
-  var stream = through()
+  var stream = syncthrough()
 
   t.notOk(stream.write('hello'))
 
@@ -643,4 +644,24 @@ test('must respect backpressure', function (t) {
   })
 
   t.notOk(stream.write('world'))
+})
+
+test('pipe with through', function (t) {
+  t.plan(3)
+
+  var stream = syncthrough(function (chunk) {
+    return Buffer.from(chunk.toString().toUpperCase())
+  })
+  var from = stringFrom([Buffer.from('foo'), Buffer.from('bar')])
+  var th = through(function (data) {
+    this.queue(data)
+  })
+  var sink = stringSink(t, [Buffer.from('FOO'), Buffer.from('BAR')])
+
+  sink.on('finish', function () {
+    t.pass('finish emitted')
+  })
+
+  from.pipe(th).pipe(stream).pipe(sink)
+  th.resume()
 })

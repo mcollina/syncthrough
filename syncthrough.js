@@ -16,7 +16,7 @@ function SyncThrough (transform, flush) {
   this._flush = flush || passthrough
   this._destination = null
   this._inFlight = undefined
-  this._ended = false
+  this.writable = true
   this._endEmitted = false
   this._destinationNeedsEnd = true
   this._lastPush = true
@@ -42,7 +42,7 @@ function deferPiping (that) {
   }
 
   that.pipe(new OnData(that))
-  if (that._ended & !that._endEmitted) {
+  if (!that.writable & !that._endEmitted) {
     that.emit('end')
   }
 }
@@ -103,7 +103,7 @@ SyncThrough.prototype.unpipe = function (dest) {
 }
 
 SyncThrough.prototype.write = function (chunk) {
-  if (this._ended) {
+  if (!this.writable) {
     this.emit('error', new Error('write after EOF'))
     return false
   }
@@ -146,8 +146,8 @@ SyncThrough.prototype.end = function (chunk) {
 }
 
 function doEnd (that) {
-  if (!that._ended) {
-    that._ended = true
+  if (that.writable) {
+    that.writable = false
     if (that._destination) {
       that._endEmitted = true
       that.emit('end')

@@ -83,8 +83,6 @@ The API is the same of a streams 3 [`Transform`][transform], with some major dif
    have `_readableState` nor `_writableState`.
 3. it does not have a `read(n)` method, nor it emits the
    `'readable'` event, the data is pushed whenever ready.
-4. it only works with streams 2 and streams 3 implementations, not with
-   streams 1 (through, split, etc).
 
 <a name="acknowledgements"></a>
 ## Acknowledgements
