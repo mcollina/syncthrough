@@ -152,7 +152,7 @@ function doEnd (that) {
       that._endEmitted = true
       that.emit('end')
       if (that._destinationNeedsEnd) {
-        that._destination.end(that._flush())
+        that._destination.end(that._flush() || null)
       }
     }
   }

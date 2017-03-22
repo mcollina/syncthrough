@@ -448,14 +448,12 @@ test('this.push', function (t) {
 
   from.pipe(stream).pipe(sink)
 })
+
 test('this.push objects', function (t) {
   t.plan(7)
 
   var stream = syncthrough(function (chunks) {
     return chunks
-    // for (let chunk of chunks) {
-    //   this.push(chunk)
-    // }
   })
   var from = objectFrom([{ num: 1 }, { num: 2 }, { num: 3 }, { num: 4 }, { num: 5 }, { num: 6 }])
   var mid = through(function (chunk) {
@@ -468,6 +466,7 @@ test('this.push objects', function (t) {
 
   from.pipe(stream).pipe(mid).pipe(sink)
 })
+
 test('backpressure', function (t) {
   t.plan(7)
   var wait = false
