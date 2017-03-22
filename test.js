@@ -50,7 +50,11 @@ function objectSink (t, expected) {
   return new Writable({
     objectMode: true,
     write: function (chunk, enc, cb) {
-      t.deepEqual(chunk, expected.shift(), 'chunk matches')
+      if (expected.length) {
+        t.deepEqual(chunk, expected.shift(), 'chunk matches')
+      } else {
+        t.ok(false, `unexpected chunk "${chunk}"`)
+      }
       cb()
     }
   })
@@ -444,7 +448,26 @@ test('this.push', function (t) {
 
   from.pipe(stream).pipe(sink)
 })
+test('this.push objects', function (t) {
+  t.plan(7)
 
+  var stream = syncthrough(function (chunks) {
+    return chunks
+    // for (let chunk of chunks) {
+    //   this.push(chunk)
+    // }
+  })
+  var from = objectFrom([{ num: 1 }, { num: 2 }, { num: 3 }, { num: 4 }, { num: 5 }, { num: 6 }])
+  var mid = through(function (chunk) {
+    this.queue(chunk)
+  })
+  var sink = objectSink(t, [{ num: 1 }, { num: 2 }, { num: 3 }, { num: 4 }, { num: 5 }, { num: 6 }])
+  sink.on('finish', function () {
+    t.pass('finish emitted')
+  })
+
+  from.pipe(stream).pipe(mid).pipe(sink)
+})
 test('backpressure', function (t) {
   t.plan(7)
   var wait = false
