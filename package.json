@@ -28,7 +28,7 @@
     "@matteo.collina/tspl": "^0.1.1",
     "borp": "^0.5.0",
     "fastbench": "^1.0.1",
-    "pump": "^1.0.2",
+    "pump": "^3.0.0",
     "readable-stream": "^4.0.0",
     "snazzy": "^9.0.0",
     "standard": "^17.1.0",
