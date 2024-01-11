@@ -1,10 +1,11 @@
 'use strict'
 
-var bench = require('fastbench')
-var syncthrough = require('../')
-var through2 = require('through2')
-var through = require('through')
-var data = Buffer.from('hello')
+const bench = require('fastbench')
+const syncthrough = require('../')
+const through2 = require('through2')
+const through = require('through')
+const { PassThrough } = require('node:stream')
+const data = Buffer.from('hello')
 
 function write (i, s) {
   for (; i < 1000; i++) {
@@ -22,16 +23,24 @@ function write (i, s) {
 }
 
 function benchThrough2 (done) {
-  var stream = through2()
+  const stream = through2()
   stream.on('data', noop)
   stream.on('end', done)
 
   write(0, stream)
 }
 
-var lastDone = null
+function benchPassThrough (done) {
+  const stream = PassThrough()
+  stream.on('data', noop)
+  stream.on('end', done)
+
+  write(0, stream)
+}
+
+let lastDone = null
 function benchThrough (done) {
-  var stream = through()
+  const stream = through()
   lastDone = done
   stream.on('data', noop)
   stream.on('end', next)
@@ -45,7 +54,7 @@ function next () {
 }
 
 function benchSyncThrough (done) {
-  var stream = syncthrough()
+  const stream = syncthrough()
 
   stream.on('data', noop)
   stream.on('end', done)
@@ -55,9 +64,10 @@ function benchSyncThrough (done) {
 
 function noop () {}
 
-var run = bench([
+const run = bench([
   benchThrough2,
   benchThrough,
+  benchPassThrough,
   benchSyncThrough
 ], 10000)
 
