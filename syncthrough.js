@@ -149,10 +149,13 @@ function doEnd (that) {
     that.writable = false
     if (that._destination) {
       that._endEmitted = true
-      that.emit('end')
+      const toFlush = that._flush() || null
       if (that._destinationNeedsEnd) {
-        that._destination.end(that._flush() || null)
+        that._destination.end(toFlush)
+      } else if (toFlush !== null) {
+        that._destination.write(toFlush)
       }
+      that.emit('end')
     }
   }
 }
