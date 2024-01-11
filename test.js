@@ -802,3 +802,31 @@ test('works with pipeline and calls flush', async function (_t) {
 
   await t.completed
 })
+
+test('works with pipeline and calls flush / 2', async function (_t) {
+  const t = tspl(_t, { plan: 3 })
+  const expected = 'hello world!'
+  let actual = ''
+  pipeline(
+    Readable.from('hello world'),
+    syncthrough(
+      undefined,
+      function flush () {
+        t.ok('flush called')
+        return '!'
+      }
+    ),
+    new Writable({
+      write (chunk, enc, cb) {
+        actual += chunk.toString()
+        cb()
+      }
+    }),
+    (err) => {
+      t.equal(err, null, 'pipeline finished without error')
+      t.equal(actual, expected, 'actual matches expected')
+    }
+  )
+
+  await t.completed
+})
