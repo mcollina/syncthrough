@@ -4,8 +4,7 @@
   "description": "A Transform stream that is sync, and very fast",
   "main": "syncthrough.js",
   "scripts": {
-    "test": "standard | snazzy && nyc tape test.js | tap-spec",
-    "coverage": "nyc report --reporter=text-lcov > coverage.lcov && codecov"
+    "test": "standard | snazzy && borp --coverage test.js"
   },
   "repository": {
     "type": "git",
@@ -25,24 +24,15 @@
   },
   "homepage": "https://github.com/mcollina/syncthrough#readme",
   "devDependencies": {
-    "buffer-shims": "^1.0.0",
-    "codecov": "^2.0.0",
-    "end-of-stream": "^1.1.0",
+    "@fastify/pre-commit": "^2.1.0",
+    "@matteo.collina/tspl": "^0.1.1",
+    "borp": "^0.5.0",
     "fastbench": "^1.0.1",
-    "nyc": "^10.0.0",
-    "pre-commit": "^1.2.2",
     "pump": "^1.0.2",
-    "readable-stream": "^2.2.2",
-    "snazzy": "^6.0.0",
-    "standard": "^9.0.0",
-    "tap-spec": "^4.1.1",
-    "tape": "^4.6.3",
+    "readable-stream": "^4.0.0",
+    "snazzy": "^9.0.0",
+    "standard": "^17.1.0",
     "through": "^2.3.8",
     "through2": "^2.0.3"
-  },
-  "dependencies": {
-    "inherits": "^2.0.3",
-    "listenercount": "^1.0.1",
-    "process-nextick-args": "^1.0.7"
   }
 }

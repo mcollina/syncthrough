@@ -1,7 +1,7 @@
 'use strict'
 
-var fs = require('fs')
-var syncthrough = require('.')
+const fs = require('fs')
+const syncthrough = require('.')
 
 fs.createReadStream(__filename)
   .pipe(syncthrough(function (chunk) {

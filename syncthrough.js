@@ -1,16 +1,14 @@
 'use strict'
 
-var inherits = require('inherits')
-var EE = require('events').EventEmitter
-var nextTick = require('process-nextick-args')
-var listenercount = require('listenercount')
+const { EventEmitter } = require('events')
+const nextTick = process.nextTick
 
 function SyncThrough (transform, flush) {
   if (!(this instanceof SyncThrough)) {
     return new SyncThrough(transform, flush)
   }
 
-  EE.call(this)
+  EventEmitter.call(this)
 
   this._transform = transform || passthrough
   this._flush = flush || passthrough
@@ -48,7 +46,7 @@ function deferPiping (that) {
 }
 
 function onRemoveListener (ev, func) {
-  if (ev === 'data' && ((ev.listenerCount && ev.listenerCount(this, ev)) || listenercount(this, ev) === 0)) {
+  if (ev === 'data' && ((ev.listenerCount && ev.listenerCount(this, ev)) !== 0)) {
     this.unpipe(this._destination)
   }
 }
@@ -57,11 +55,12 @@ function onEnd () {
   this._endEmitted = true
 }
 
-inherits(SyncThrough, EE)
+Object.setPrototypeOf(SyncThrough.prototype, EventEmitter.prototype)
+Object.setPrototypeOf(SyncThrough, EventEmitter)
 
 SyncThrough.prototype.pipe = function (dest, opts) {
-  var that = this
-  var inFlight = this._inFlight
+  const that = this
+  const inFlight = this._inFlight
 
   if (this._destination) {
     throw new Error('multiple pipe not allowed')
@@ -108,7 +107,7 @@ SyncThrough.prototype.write = function (chunk) {
     return false
   }
 
-  var res = this._transform(chunk)
+  const res = this._transform(chunk)
 
   if (!this._destination) {
     if (this._inFlight) {
@@ -181,10 +180,11 @@ function passthrough (chunk) {
 
 function OnData (parent) {
   this.parent = parent
-  EE.call(this)
+  EventEmitter.call(this)
 }
 
-inherits(OnData, EE)
+Object.setPrototypeOf(OnData.prototype, EventEmitter.prototype)
+Object.setPrototypeOf(OnData, EventEmitter)
 
 OnData.prototype.write = function (chunk) {
   this.parent.emit('data', chunk)
