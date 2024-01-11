@@ -1,6 +1,6 @@
 {
   "name": "syncthrough",
-  "version": "0.5.0",
+  "version": "1.0.0",
   "description": "A Transform stream that is sync, and very fast",
   "main": "syncthrough.js",
   "scripts": {
