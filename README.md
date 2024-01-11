@@ -1,4 +1,4 @@
-# syncthrough&nbsp;&nbsp;[![Build Status](https://travis-ci.org/mcollina/syncthrough.svg?branch=master)](https://travis-ci.org/mcollina/syncthrough)&nbsp;&nbsp;[![codecov](https://codecov.io/gh/mcollina/syncthrough/branch/master/graph/badge.svg)](https://codecov.io/gh/mcollina/syncthrough)
+# syncthrough&nbsp;&nbsp;[![ci](https://github.com/mcollina/syncthrough/actions/workflows/ci.yml/badge.svg)](https://github.com/mcollina/syncthrough/actions/workflows/ci.yml)
 
 Transform your data as it pass by, synchronously.
 
