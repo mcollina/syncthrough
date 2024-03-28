@@ -10,7 +10,7 @@ In fact, it delivers 10x performance over a standard
 [`Transform`][transform].
 
 Because of the [caveats](#caveats), it is best used in combination of
-[`pipe()`][pipe] or [`pump()`][pump].
+[`pipe()`][pipe], [`pump()`][pump], or [`pipeline()`][pipeline].
 
 ## Install
 
@@ -21,19 +21,19 @@ npm i syncthrough --save
 ## Example
 
 ```js
-'use strict'
+import { createReadStream } from 'node:fs'
+import { pipeline } from 'node:stream/promises'
+import { syncthrough } from 'syncthrough'
 
-var fs = require('fs')
-var syncthrough = require('syncthrough')
-
-fs.createReadStream(__filename)
-  .pipe(syncthrough(function (chunk) {
+await pipeline(
+  createReadStream(import.meta.filename),
+  syncthrough(function (chunk) {
     // there is no callback here
     // you can return null to end the stream
     // returning undefined will let you skip this chunk
     return chunk.toString().toUpperCase()
-  }))
-  .pipe(process.stdout, { end: false })
+  }),
+  process.stdout)
 ```
 
 ## API
@@ -96,3 +96,4 @@ MIT
 [transform]: https://nodejs.org/api/stream.html#stream_class_stream_transform
 [pipe]: https://nodejs.org/api/stream.html#stream_readable_pipe_destination_options
 [pump]: https://github.com/mafintosh/pump
+[pipeline]: https://nodejs.org/api/stream.html#streampipelinesource-transforms-destination-options
