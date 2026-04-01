@@ -10,7 +10,7 @@ In fact, it delivers 10x performance over a standard
 [`Transform`][transform].
 
 Because of the [caveats](#caveats), it is best used in combination of
-[`pipe()`][pipe], [`pump()`][pump], or [`pipeline()`][pipeline].
+[`pipe()`][pipe], [`pump()`][pump], [`pipeline()`][pipeline], or `stream.compose()`.
 
 ## Install
 

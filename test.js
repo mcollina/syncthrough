@@ -8,7 +8,7 @@ const Writable = require('readable-stream').Writable
 const fs = require('fs')
 const eos = require('end-of-stream')
 const pump = require('pump')
-const { pipeline } = require('node:stream')
+const { compose, pipeline, Readable: NodeReadable } = require('node:stream')
 const through = require('through')
 
 function stringFrom (chunks) {
@@ -827,6 +827,61 @@ test('works with pipeline and calls flush / 2', async function (_t) {
       t.equal(actual, expected, 'actual matches expected')
     }
   )
+
+  await t.completed
+})
+
+test('works with compose', async function (_t) {
+  const t = tspl(_t, { plan: 1 })
+
+  await Promise.race([
+    (async function () {
+      let actual = ''
+      for await (const chunk of compose(
+        NodeReadable.from([Buffer.from('hello world')]),
+        syncthrough(function (chunk) {
+          return chunk
+        })
+      )) {
+        actual += chunk.toString()
+      }
+
+      t.equal(actual, 'hello world', 'compose output matches')
+    })(),
+    new Promise(function (_resolve, reject) {
+      setTimeout(function () {
+        reject(new Error('compose timed out'))
+      }, 1000)
+    })
+  ])
+
+  await t.completed
+})
+
+test('works with compose and multiple this.push()', async function (_t) {
+  const t = tspl(_t, { plan: 1 })
+
+  await Promise.race([
+    (async function () {
+      let actual = ''
+      for await (const chunk of compose(
+        NodeReadable.from([Buffer.from('hello')]),
+        syncthrough(function (chunk) {
+          this.push(Buffer.from(chunk.toString().toUpperCase()))
+          this.push(Buffer.from(chunk.toString()))
+        })
+      )) {
+        actual += chunk.toString()
+      }
+
+      t.equal(actual, 'HELLOhello', 'compose output matches')
+    })(),
+    new Promise(function (_resolve, reject) {
+      setTimeout(function () {
+        reject(new Error('compose timed out'))
+      }, 1000)
+    })
+  ])
 
   await t.completed
 })
