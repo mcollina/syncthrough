@@ -13,15 +13,16 @@ function SyncThrough (transform, flush) {
   this._transform = transform || passthrough
   this._flush = flush || passthrough
   this._destination = null
-  this._inFlight = undefined
+  this._outgoing = []
+  this._outgoingEnded = false
   this.writable = true
+  this.readable = true
   this._endEmitted = false
   this._destinationNeedsEnd = true
   this._lastPush = true
 
   this.on('newListener', onNewListener)
   this.on('removeListener', onRemoveListener)
-  this.on('end', onEnd)
 }
 
 function onNewListener (ev, func) {
@@ -30,6 +31,12 @@ function onNewListener (ev, func) {
       throw new Error('you can use only pipe() or on(\'data\')')
     }
     nextTick(deferPiping, this)
+  } else if (ev === 'readable' && this._outgoing.length > 0) {
+    nextTick(emitReadable, this)
+  } else if (ev === 'finish' && !this.writable) {
+    nextTick(emitLateFinish, this)
+  } else if (ev === 'end' && this._endEmitted) {
+    nextTick(emitLateEnd, this)
   }
 }
 
@@ -40,9 +47,6 @@ function deferPiping (that) {
   }
 
   that.pipe(new OnData(that))
-  if (!that.writable & !that._endEmitted) {
-    that.emit('end')
-  }
 }
 
 function onRemoveListener (ev, func) {
@@ -51,8 +55,63 @@ function onRemoveListener (ev, func) {
   }
 }
 
-function onEnd () {
-  this._endEmitted = true
+function emitReadable (that) {
+  if (that.readable && that._outgoing.length > 0) {
+    that.emit('readable')
+  }
+}
+
+function emitLateFinish (that) {
+  if (!that.writable) {
+    that.emit('finish')
+  }
+}
+
+function emitLateEnd (that) {
+  if (that._endEmitted) {
+    that.emit('end')
+  }
+}
+
+function emitEnd (that) {
+  if (!that._endEmitted) {
+    that._endEmitted = true
+    that.readable = false
+    that.emit('end')
+  }
+}
+
+function enqueue (that, chunk) {
+  const empty = that._outgoing.length === 0
+  that._outgoing.push(chunk)
+  if (empty) {
+    emitReadable(that)
+  }
+}
+
+function drainOutgoing (that) {
+  const hadOutgoing = that._outgoing.length > 0
+
+  while (that._destination && that._outgoing.length > 0) {
+    that._lastPush = that._destination.write(that._outgoing.shift())
+    if (!that._lastPush) {
+      return false
+    }
+  }
+
+  if (that._outgoingEnded && that._outgoing.length === 0) {
+    that._outgoingEnded = false
+    if (that._destinationNeedsEnd) {
+      that._destination.end()
+    }
+    emitEnd(that)
+  }
+
+  if (hadOutgoing && that._outgoing.length === 0) {
+    that.emit('drain')
+  }
+
+  return true
 }
 
 Object.setPrototypeOf(SyncThrough.prototype, EventEmitter.prototype)
@@ -60,7 +119,6 @@ Object.setPrototypeOf(SyncThrough, EventEmitter)
 
 SyncThrough.prototype.pipe = function (dest, opts) {
   const that = this
-  const inFlight = this._inFlight
 
   if (this._destination) {
     throw new Error('multiple pipe not allowed')
@@ -70,7 +128,13 @@ SyncThrough.prototype.pipe = function (dest, opts) {
   dest.emit('pipe', this)
 
   this._destination.on('drain', function () {
-    that.emit('drain')
+    if (!drainOutgoing(that)) {
+      return
+    }
+
+    if (that._outgoing.length === 0 && !that._outgoingEnded) {
+      that.emit('drain')
+    }
   })
 
   this._destination.on('end', function () {
@@ -79,12 +143,7 @@ SyncThrough.prototype.pipe = function (dest, opts) {
 
   this._destinationNeedsEnd = !opts || opts.end !== false
 
-  if (inFlight && this._destination.write(inFlight)) {
-    this._inFlight = undefined
-    this.emit('drain')
-  } else if (inFlight === null) {
-    doEnd(this)
-  }
+  drainOutgoing(this)
 
   return dest
 }
@@ -107,14 +166,20 @@ SyncThrough.prototype.write = function (chunk) {
     return false
   }
 
+  if (!this._destination && (this._outgoing.length > 0 || this._outgoingEnded)) {
+    this.emit('error', new Error('upstream must respect backpressure'))
+    return false
+  }
+
   const res = this._transform(chunk)
 
   if (!this._destination) {
-    if (this._inFlight) {
-      this.emit('error', new Error('upstream must respect backpressure'))
+    if (res) {
+      enqueue(this, res)
+    } else if (res === null) {
+      doEnd(this)
       return false
     }
-    this._inFlight = res
     return false
   }
 
@@ -128,7 +193,32 @@ SyncThrough.prototype.write = function (chunk) {
   return this._lastPush
 }
 
+SyncThrough.prototype.read = function () {
+  const chunk = this._outgoing.shift() || null
+
+  if (chunk === null) {
+    if (this._outgoingEnded) {
+      emitEnd(this)
+    }
+    return null
+  }
+
+  if (this._outgoing.length === 0) {
+    if (this._outgoingEnded) {
+      nextTick(emitEnd, this)
+    }
+    this.emit('drain')
+  }
+
+  return chunk
+}
+
 SyncThrough.prototype.push = function (chunk) {
+  if (!this._destination) {
+    enqueue(this, chunk)
+    return this
+  }
+
   // ignoring the return value
   this._lastPush = this._destination.write(chunk)
   return this
@@ -147,15 +237,30 @@ SyncThrough.prototype.end = function (chunk) {
 function doEnd (that) {
   if (that.writable) {
     that.writable = false
+    that.emit('finish')
+
+    const toFlush = that._flush() || null
+
     if (that._destination) {
-      that._endEmitted = true
-      const toFlush = that._flush() || null
       if (that._destinationNeedsEnd) {
+        that.readable = false
+        that._endEmitted = true
         that._destination.end(toFlush)
       } else if (toFlush !== null) {
         that._destination.write(toFlush)
       }
       that.emit('end')
+      return
+    }
+
+    if (toFlush !== null) {
+      enqueue(that, toFlush)
+    }
+
+    if (that._outgoing.length === 0) {
+      emitEnd(that)
+    } else {
+      that._outgoingEnded = true
     }
   }
 }
@@ -171,6 +276,8 @@ SyncThrough.prototype.destroy = function (err) {
 }
 
 function doDestroy (that, err) {
+  that.readable = false
+  that.writable = false
   if (err) {
     that.emit('error', err)
   }
